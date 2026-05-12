@@ -3,6 +3,7 @@ import Observation
 import EntityModel
 import WorldStore
 import WikiLinks
+import SchemaRegistry
 
 @Observable
 public final class WorldSession {
@@ -18,11 +19,16 @@ public final class WorldSession {
     }
 
     @discardableResult
-    public func createCharacter(name: String) throws -> Entity {
+    public func createEntity(type: EntityType, name: String) throws -> Entity {
         guard let store else { throw SessionError.noWorldOpen }
-        let entity = try store.create(name: name, type: .character)
+        let entity = try store.create(name: name, type: type)
         rebuildLinks()
         return entity
+    }
+
+    @discardableResult
+    public func createCharacter(name: String) throws -> Entity {
+        try createEntity(type: .character, name: name)
     }
 
     public func save(_ entity: Entity) throws {
@@ -33,6 +39,10 @@ public final class WorldSession {
 
     public func backlinks(to target: EntityID) -> [EntityID] {
         backlinkIndex.sources(linkingTo: target)
+    }
+
+    public func fields(for type: EntityType) -> [FieldDefinition] {
+        store?.schema.fields(for: type) ?? []
     }
 
     private func rebuildLinks() {
