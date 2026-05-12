@@ -7,9 +7,11 @@ let package = Package(
     products: [
         .library(name: "WikiLinks", targets: ["WikiLinks"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(path: "../EntityModel"),
+    ],
     targets: [
-        .target(name: "WikiLinks"),
+        .target(name: "WikiLinks", dependencies: ["EntityModel"]),
         .testTarget(name: "WikiLinksTests", dependencies: ["WikiLinks"]),
     ]
 )
