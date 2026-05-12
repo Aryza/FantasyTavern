@@ -11,6 +11,8 @@ packages:
     path: Packages/WorldStore
   WikiLinks:
     path: Packages/WikiLinks
+  SchemaRegistry:
+    path: Packages/SchemaRegistry
 targets:
   FantasyTavernApp:
     type: application
@@ -40,6 +42,7 @@ targets:
       - package: EntityModel
       - package: WorldStore
       - package: WikiLinks
+      - package: SchemaRegistry
   FantasyTavernAppTests:
     type: bundle.unit-test
     platform: macOS
