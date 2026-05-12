@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import EntityModel
 
 struct AppCommands: Commands {
     @Binding var session: WorldSession
@@ -21,9 +22,28 @@ struct AppCommands: Commands {
                     Button("Clear Menu") { recents.clear() }
                 }
             }
-            Button("New Character") { newCharacter() }
+            Divider()
+            Menu("New") {
+                ForEach(EntityType.allCases, id: \.self) { type in
+                    Button(label(for: type)) { newEntity(type: type) }
+                        .disabled(session.store == nil)
+                }
+            }
+            Button("New Character") { newEntity(type: .character) }
                 .keyboardShortcut("n", modifiers: [.command])
                 .disabled(session.store == nil)
+        }
+    }
+
+    private func label(for type: EntityType) -> String {
+        switch type {
+        case .character:     return "Character"
+        case .location:      return "Location"
+        case .lore:          return "Lore Entry"
+        case .item:          return "Item"
+        case .language:      return "Language"
+        case .journal:       return "Journal Entry"
+        case .timelineEvent: return "Timeline Event"
         }
     }
 
@@ -46,8 +66,8 @@ struct AppCommands: Commands {
         }
     }
 
-    private func newCharacter() {
-        if let entity = try? session.createCharacter(name: "Untitled Character") {
+    private func newEntity(type: EntityType) {
+        if let entity = try? session.createEntity(type: type, name: "Untitled \(label(for: type))") {
             tabs.open(entity.id)
         }
     }
