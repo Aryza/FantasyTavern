@@ -9,6 +9,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../EntityModel"),
+        .package(path: "../SchemaRegistry"),
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
     ],
     targets: [
@@ -16,6 +17,7 @@ let package = Package(
             name: "WorldStore",
             dependencies: [
                 "EntityModel",
+                "SchemaRegistry",
                 .product(name: "Yams", package: "Yams"),
             ]
         ),

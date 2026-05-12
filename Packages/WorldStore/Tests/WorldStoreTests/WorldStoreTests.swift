@@ -1,5 +1,6 @@
 import XCTest
 import EntityModel
+import SchemaRegistry
 @testable import WorldStore
 
 final class WorldStoreTests: XCTestCase {
@@ -48,5 +49,29 @@ final class WorldStoreTests: XCTestCase {
 
         let reread = try WorldStore.open(url)
         XCTAssertTrue(reread.entities.contains(where: { $0.id == created.id }))
+    }
+
+    func test_open_loadsSchemaWithDefaults() throws {
+        let url = try copyFixtureWorld()
+        let store = try WorldStore.open(url)
+        XCTAssertEqual(store.schema.fields(for: .character).map(\.key),
+                       ["race", "age", "alignment", "status"])
+    }
+
+    func test_open_appliesSchemaOverridesFromWorldJSON() throws {
+        let url = try copyFixtureWorld()
+        let overrideJSON = """
+        {
+          "name": "Aetheria",
+          "schemaOverrides": {
+            "character": [
+              { "key": "house", "label": "House", "type": "string" }
+            ]
+          }
+        }
+        """
+        try overrideJSON.write(to: url.appendingPathComponent("world.json"), atomically: true, encoding: .utf8)
+        let store = try WorldStore.open(url)
+        XCTAssertEqual(store.schema.fields(for: .character).map(\.key), ["house"])
     }
 }

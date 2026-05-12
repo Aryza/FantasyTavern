@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import EntityModel
+import SchemaRegistry
 
 public struct World: Equatable, Sendable {
     public var name: String
@@ -12,17 +13,21 @@ public struct World: Equatable, Sendable {
 public final class WorldStore {
     public private(set) var world: World
     public private(set) var entities: [Entity]
+    public private(set) var schema: Schema
 
-    private init(world: World, entities: [Entity]) {
+    private init(world: World, entities: [Entity], schema: Schema) {
         self.world = world
         self.entities = entities
+        self.schema = schema
     }
 
     public static func open(_ folder: URL) throws -> WorldStore {
         let worldJSON = folder.appendingPathComponent("world.json")
+        let worldData: Data? = try? Data(contentsOf: worldJSON)
+
         let name: String
         let color: String?
-        if let data = try? Data(contentsOf: worldJSON),
+        if let data = worldData,
            let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             name = (obj["name"] as? String) ?? folder.lastPathComponent
             color = obj["color"] as? String
@@ -45,8 +50,9 @@ public final class WorldStore {
             }
         }
 
+        let schema = SchemaLoader.load(overridesJSON: worldData)
         let world = World(name: name, folder: folder, color: color)
-        return WorldStore(world: world, entities: loaded.sorted { $0.name < $1.name })
+        return WorldStore(world: world, entities: loaded.sorted { $0.name < $1.name }, schema: schema)
     }
 
     public func save(_ entity: Entity) throws {
