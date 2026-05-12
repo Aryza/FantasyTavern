@@ -8,20 +8,17 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView {
             SidebarView()
-                .frame(minWidth: 200)
+                .frame(minWidth: 220)
         } detail: {
             VStack(spacing: 0) {
                 TabBarView()
                 Divider()
                 if let id = tabs.selected, let entity = entity(for: id) {
-                    HStack(spacing: 0) {
-                        EditorView(entity: entity).frame(maxWidth: .infinity, maxHeight: .infinity)
-                        Divider()
-                        InspectorView(entity: entity).frame(width: 260)
-                    }
+                    EditorView(entity: entity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ContentUnavailableView("No tab open", systemImage: "doc.text",
-                                           description: Text("Open a character from the sidebar."))
+                                           description: Text("Open an entity from the sidebar."))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
