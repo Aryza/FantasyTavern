@@ -98,43 +98,38 @@ FantasyTavern/                              # repo root
 - **Date format:** ISO 8601 with seconds, UTC, e.g. `2026-05-12T10:00:00Z`. Use `ISO8601DateFormatter` with `.withInternetDateTime`.
 - **Wiki-link syntax (Plan 1):** `[[Name]]` and `[[Name|alias]]`. Newlines inside `[[ ]]` are not allowed (parser treats them as failed match). Names are matched case-insensitively against entity `name` field; whitespace is collapsed.
 - **Commit messages:** Conventional Commits. `feat:`, `test:`, `chore:`, `fix:`. One commit per task (end-of-task step).
+- **Build/test commands (CLI-only, no Xcode UI required):**
+  - SPM package tests: `swift test --package-path Packages/<Name>`
+  - App build: `xcodebuild -project FantasyTavern.xcodeproj -scheme FantasyTavernApp -destination 'platform=macOS' build`
+  - App + unit tests: `xcodebuild -project FantasyTavern.xcodeproj -scheme FantasyTavernApp -destination 'platform=macOS' test`
+  - Where the plan says "⌘B" → run the build command. Where it says "⌘U" → run the test command. Where it says "⌘R" → `open -a "$(pwd)/build/Debug/FantasyTavernApp.app"` after building, or skip (interactive smoke test belongs to Task 13 and the user).
+  - After editing `project.yml`, app sources added/moved, or anything that changes the project structure: re-run `xcodegen generate` before building.
 
 ---
 
-## Task 0: Repo & Xcode skeleton
+## Task 0: Repo & Xcode skeleton (XcodeGen-driven)
 
 **Files:**
-- Create: `FantasyTavern.xcworkspace/contents.xcworkspacedata`
-- Create: `FantasyTavernApp/FantasyTavernApp.xcodeproj` (via Xcode UI)
+- Create: `project.yml` (XcodeGen spec)
 - Create: `Packages/EntityModel/Package.swift`
 - Create: `Packages/WorldStore/Package.swift`
 - Create: `Packages/WikiLinks/Package.swift`
-- Modify: `.gitignore` (append Xcode patterns)
+- Create: `FantasyTavernApp/Sources/FantasyTavernAppApp.swift` (placeholder @main)
+- Create: `FantasyTavernApp/Sources/ContentView.swift` (placeholder)
+- Create: `FantasyTavernApp/Tests/PlaceholderTests.swift` (one passing test)
+- Modify: `.gitignore` (Xcode + xcodegen-generated patterns)
 
-- [ ] **Step 1: Create Xcode app project**
+**Prerequisite:** `xcodegen` installed (`brew install xcodegen` — verify with `xcodegen --version`).
 
-  In Xcode: File → New → Project → macOS → App. Name: `FantasyTavernApp`. Interface: SwiftUI. Language: Swift. Save into `FantasyTavernApp/`. Bundle id: `de.aryb.FantasyTavern`. Minimum deployment: macOS 14.0. Disable Tests target option? **No** — keep the auto-generated test target.
-
-- [ ] **Step 2: Create the workspace**
-
-  In Xcode: File → New → Workspace → save as `FantasyTavern.xcworkspace` at repo root. Drag `FantasyTavernApp.xcodeproj` into the workspace.
-
-- [ ] **Step 3: Create three local SPM packages**
-
-  From a terminal at repo root:
+- [ ] **Step 1: Create three local SPM packages**
 
   ```bash
-  mkdir -p Packages/EntityModel Packages/WorldStore Packages/WikiLinks
-  (cd Packages/EntityModel && swift package init --type library --name EntityModel)
-  (cd Packages/WorldStore  && swift package init --type library --name WorldStore)
-  (cd Packages/WikiLinks   && swift package init --type library --name WikiLinks)
+  mkdir -p Packages/EntityModel/Sources/EntityModel Packages/EntityModel/Tests/EntityModelTests
+  mkdir -p Packages/WorldStore/Sources/WorldStore Packages/WorldStore/Tests/WorldStoreTests
+  mkdir -p Packages/WikiLinks/Sources/WikiLinks Packages/WikiLinks/Tests/WikiLinksTests
   ```
 
-  Drag each package folder into the workspace's left navigator under the workspace (not under the app project).
-
-- [ ] **Step 4: Set platform + Swift tools version on each Package.swift**
-
-  Edit each `Package.swift` so it reads (adjust the `name`):
+  Write each `Packages/<Name>/Package.swift` as:
 
   ```swift
   // swift-tools-version: 5.10
@@ -154,22 +149,192 @@ FantasyTavern/                              # repo root
   )
   ```
 
-  Repeat for `WorldStore` and `WikiLinks` (name + product/target names match the package).
+  Repeat for `WorldStore` and `WikiLinks` (replace name + product/target names).
 
-- [ ] **Step 5: Link packages into the app target**
+  Add a tiny placeholder source per package so SPM builds before Task 1: each `Sources/<Name>/<Name>.swift` containing:
 
-  In Xcode → FantasyTavernApp target → General → Frameworks, Libraries, and Embedded Content → `+` → Add `EntityModel`, `WorldStore`, `WikiLinks` from the workspace. Also add Yams once introduced (Task 2).
+  ```swift
+  public enum <Name>Placeholder {}
+  ```
 
-- [ ] **Step 6: Confirm a clean build**
+- [ ] **Step 2: Create placeholder app sources**
 
-  Run: ⌘B in Xcode. Expected: build succeeds with no source changes yet. Run the app: ⌘R. Expected: an empty default ContentView window opens.
+  `FantasyTavernApp/Sources/FantasyTavernAppApp.swift`:
 
-- [ ] **Step 7: Commit**
+  ```swift
+  import SwiftUI
+
+  @main
+  struct FantasyTavernAppApp: App {
+      var body: some Scene {
+          WindowGroup { ContentView() }
+      }
+  }
+  ```
+
+  `FantasyTavernApp/Sources/ContentView.swift`:
+
+  ```swift
+  import SwiftUI
+
+  struct ContentView: View {
+      var body: some View {
+          Text("FantasyTavern").padding()
+      }
+  }
+  ```
+
+  `FantasyTavernApp/Tests/PlaceholderTests.swift`:
+
+  ```swift
+  import XCTest
+
+  final class PlaceholderTests: XCTestCase {
+      func test_placeholder() { XCTAssertTrue(true) }
+  }
+  ```
+
+- [ ] **Step 3: Write `project.yml` for XcodeGen**
+
+  ```yaml
+  name: FantasyTavern
+  options:
+    bundleIdPrefix: de.aryb
+    deploymentTarget:
+      macOS: "14.0"
+    createIntermediateGroups: true
+  packages:
+    EntityModel:
+      path: Packages/EntityModel
+    WorldStore:
+      path: Packages/WorldStore
+    WikiLinks:
+      path: Packages/WikiLinks
+  targets:
+    FantasyTavernApp:
+      type: application
+      platform: macOS
+      deploymentTarget: "14.0"
+      sources:
+        - path: FantasyTavernApp/Sources
+      info:
+        path: FantasyTavernApp/Info.plist
+        properties:
+          CFBundleName: FantasyTavern
+          LSMinimumSystemVersion: "14.0"
+          NSHumanReadableCopyright: ""
+      settings:
+        base:
+          PRODUCT_BUNDLE_IDENTIFIER: de.aryb.FantasyTavern
+          GENERATE_INFOPLIST_FILE: NO
+          MACOSX_DEPLOYMENT_TARGET: "14.0"
+          SWIFT_VERSION: "5.10"
+          ENABLE_HARDENED_RUNTIME: YES
+          CODE_SIGN_STYLE: Automatic
+          CODE_SIGNING_REQUIRED: NO
+          CODE_SIGN_IDENTITY: "-"
+      dependencies:
+        - package: EntityModel
+        - package: WorldStore
+        - package: WikiLinks
+    FantasyTavernAppTests:
+      type: bundle.unit-test
+      platform: macOS
+      deploymentTarget: "14.0"
+      sources:
+        - path: FantasyTavernApp/Tests
+      dependencies:
+        - target: FantasyTavernApp
+      settings:
+        base:
+          GENERATE_INFOPLIST_FILE: YES
+          BUNDLE_LOADER: "$(TEST_HOST)"
+          TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FantasyTavernApp.app/Contents/MacOS/FantasyTavernApp"
+  schemes:
+    FantasyTavernApp:
+      build:
+        targets:
+          FantasyTavernApp: all
+          FantasyTavernAppTests: [test]
+      test:
+        targets:
+          - FantasyTavernAppTests
+      run:
+        config: Debug
+  ```
+
+- [ ] **Step 4: Write `FantasyTavernApp/Info.plist`**
+
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  <plist version="1.0">
+  <dict>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
+    <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleName</key><string>FantasyTavern</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>LSMinimumSystemVersion</key><string>14.0</string>
+    <key>NSPrincipalClass</key><string>NSApplication</string>
+  </dict>
+  </plist>
+  ```
+
+- [ ] **Step 5: Update `.gitignore`**
+
+  Append:
+
+  ```
+  # Xcode (generated by XcodeGen)
+  FantasyTavern.xcodeproj/
+  *.xcworkspace/xcuserdata/
+  *.xcuserstate
+  build/
+  DerivedData/
+  .swiftpm/
+  Packages/*/.build/
+  Packages/*/.swiftpm/
+  ```
+
+- [ ] **Step 6: Generate project + verify build**
 
   ```bash
-  git add .
-  git commit -m "chore: scaffold Xcode app + local SPM packages"
+  xcodegen generate
+  xcodebuild -project FantasyTavern.xcodeproj -scheme FantasyTavernApp -destination 'platform=macOS' build 2>&1 | tail -20
   ```
+
+  Expected: build succeeds, no errors. The line `** BUILD SUCCEEDED **` should appear.
+
+- [ ] **Step 7: Verify SPM packages build**
+
+  ```bash
+  swift build --package-path Packages/EntityModel
+  swift build --package-path Packages/WorldStore
+  swift build --package-path Packages/WikiLinks
+  ```
+
+  Expected: all three build cleanly.
+
+- [ ] **Step 8: Run the placeholder unit test target**
+
+  ```bash
+  xcodebuild -project FantasyTavern.xcodeproj -scheme FantasyTavernApp -destination 'platform=macOS' test 2>&1 | tail -10
+  ```
+
+  Expected: PlaceholderTests.test_placeholder passes.
+
+- [ ] **Step 9: Commit**
+
+  ```bash
+  git add project.yml .gitignore FantasyTavernApp Packages
+  git commit -m "chore: scaffold app via XcodeGen + local SPM packages"
+  ```
+
+  Note: `FantasyTavern.xcodeproj/` is generated and gitignored. Regenerate any time with `xcodegen generate`.
 
 ---
 
