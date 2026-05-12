@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import EntityModel
 
 public struct World: Equatable, Sendable {
@@ -7,6 +8,7 @@ public struct World: Equatable, Sendable {
     public var color: String?
 }
 
+@Observable
 public final class WorldStore {
     public private(set) var world: World
     public private(set) var entities: [Entity]
