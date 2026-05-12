@@ -20,7 +20,10 @@ struct CommandPaletteView: View {
                         .onKeyPress(.escape) { controller.dismiss(); return .handled }
                         .onKeyPress(.upArrow) { controller.moveSelection(by: -1); return .handled }
                         .onKeyPress(.downArrow) { controller.moveSelection(by: 1); return .handled }
-                        .onSubmit { controller.activate(openInPlace: false) }
+                        .onKeyPress(keys: [.return]) { press in
+                            controller.activate(openInPlace: press.modifiers.contains(.command))
+                            return .handled
+                        }
 
                     Divider()
                     results
