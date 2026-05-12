@@ -13,6 +13,8 @@ packages:
     path: Packages/WikiLinks
   SchemaRegistry:
     path: Packages/SchemaRegistry
+  SearchIndex:
+    path: Packages/SearchIndex
 targets:
   FantasyTavernApp:
     type: application
@@ -43,6 +45,7 @@ targets:
       - package: WorldStore
       - package: WikiLinks
       - package: SchemaRegistry
+      - package: SearchIndex
   FantasyTavernAppTests:
     type: bundle.unit-test
     platform: macOS
