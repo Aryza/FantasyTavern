@@ -1,0 +1,64 @@
+name: FantasyTavern
+options:
+  bundleIdPrefix: de.aryb
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  EntityModel:
+    path: Packages/EntityModel
+  WorldStore:
+    path: Packages/WorldStore
+  WikiLinks:
+    path: Packages/WikiLinks
+targets:
+  FantasyTavernApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: FantasyTavernApp/Sources
+    info:
+      path: FantasyTavernApp/Info.plist
+      properties:
+        CFBundleName: FantasyTavern
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: ""
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.aryb.FantasyTavern
+        GENERATE_INFOPLIST_FILE: NO
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        SWIFT_VERSION: "5.10"
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGN_IDENTITY: "-"
+    dependencies:
+      - package: EntityModel
+      - package: WorldStore
+      - package: WikiLinks
+  FantasyTavernAppTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: FantasyTavernApp/Tests
+    dependencies:
+      - target: FantasyTavernApp
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FantasyTavernApp.app/Contents/MacOS/FantasyTavernApp"
+schemes:
+  FantasyTavernApp:
+    build:
+      targets:
+        FantasyTavernApp: all
+        FantasyTavernAppTests: [test]
+    test:
+      targets:
+        - FantasyTavernAppTests
+    run:
+      config: Debug
