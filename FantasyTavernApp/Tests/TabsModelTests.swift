@@ -36,4 +36,27 @@ final class TabsModelTests: XCTestCase {
         XCTAssertEqual(model.openTabs, [])
         XCTAssertNil(model.selected)
     }
+
+    func test_open_pushesToRecents_mostRecentFirst() {
+        let m = TabsModel()
+        m.open(EntityID("a"))
+        m.open(EntityID("b"))
+        m.open(EntityID("c"))
+        XCTAssertEqual(m.recents, [EntityID("c"), EntityID("b"), EntityID("a")])
+    }
+
+    func test_open_existing_movesItToFrontOfRecents() {
+        let m = TabsModel()
+        m.open(EntityID("a"))
+        m.open(EntityID("b"))
+        m.open(EntityID("a"))
+        XCTAssertEqual(m.recents, [EntityID("a"), EntityID("b")])
+    }
+
+    func test_recents_cappedAtTen() {
+        let m = TabsModel()
+        for i in 0..<15 { m.open(EntityID("e\(i)")) }
+        XCTAssertEqual(m.recents.count, 10)
+        XCTAssertEqual(m.recents.first, EntityID("e14"))
+    }
 }
