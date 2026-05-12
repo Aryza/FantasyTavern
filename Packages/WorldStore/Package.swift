@@ -7,9 +7,22 @@ let package = Package(
     products: [
         .library(name: "WorldStore", targets: ["WorldStore"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(path: "../EntityModel"),
+        .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.6"),
+    ],
     targets: [
-        .target(name: "WorldStore"),
-        .testTarget(name: "WorldStoreTests", dependencies: ["WorldStore"]),
+        .target(
+            name: "WorldStore",
+            dependencies: [
+                "EntityModel",
+                .product(name: "Yams", package: "Yams"),
+            ]
+        ),
+        .testTarget(
+            name: "WorldStoreTests",
+            dependencies: ["WorldStore"],
+            resources: [.copy("Fixtures")]
+        ),
     ]
 )
