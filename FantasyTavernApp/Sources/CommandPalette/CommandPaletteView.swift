@@ -3,6 +3,7 @@ import EntityModel
 
 struct CommandPaletteView: View {
     @Bindable var controller: PaletteController
+    @FocusState private var queryFocused: Bool
 
     var body: some View {
         if controller.isVisible {
@@ -17,6 +18,7 @@ struct CommandPaletteView: View {
                         .textFieldStyle(.plain)
                         .padding(12)
                         .background(.background)
+                        .focused($queryFocused)
                         .onKeyPress(.escape) { controller.dismiss(); return .handled }
                         .onKeyPress(.upArrow) { controller.moveSelection(by: -1); return .handled }
                         .onKeyPress(.downArrow) { controller.moveSelection(by: 1); return .handled }
@@ -35,6 +37,8 @@ struct CommandPaletteView: View {
                 .padding(.top, 80)
             }
             .transition(.opacity)
+            .onAppear { queryFocused = true }
+            .task { queryFocused = true }
         }
     }
 
