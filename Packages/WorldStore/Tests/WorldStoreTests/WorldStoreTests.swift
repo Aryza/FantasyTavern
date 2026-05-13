@@ -74,4 +74,43 @@ final class WorldStoreTests: XCTestCase {
         let store = try WorldStore.open(url)
         XCTAssertEqual(store.schema.fields(for: .character).map(\.key), ["house"])
     }
+
+    func test_open_loadsMaps() throws {
+        let url = try copyFixtureWorld()
+        let mapsDir = url.appendingPathComponent("maps")
+        try FileManager.default.createDirectory(at: mapsDir, withIntermediateDirectories: true)
+        try Data([0]).write(to: mapsDir.appendingPathComponent("overworld.png"))
+        let store = try WorldStore.open(url)
+        XCTAssertEqual(store.mapNames, ["overworld"])
+    }
+
+    func test_open_loadsCalendar() throws {
+        let url = try copyFixtureWorld()
+        let json = """
+        {
+          "name": "Aetheria",
+          "calendar": {
+            "yearZeroLabel": "AE",
+            "eras": [{ "id":"first-age", "name":"First Age", "start":-1000, "end":0 }]
+          }
+        }
+        """
+        try json.write(to: url.appendingPathComponent("world.json"), atomically: true, encoding: .utf8)
+        let store = try WorldStore.open(url)
+        XCTAssertEqual(store.calendar.yearZeroLabel, "AE")
+        XCTAssertEqual(store.calendar.eras.map(\.id), ["first-age"])
+    }
+
+    func test_saveMap_roundTrip() throws {
+        let url = try copyFixtureWorld()
+        let mapsDir = url.appendingPathComponent("maps")
+        try FileManager.default.createDirectory(at: mapsDir, withIntermediateDirectories: true)
+        try Data([0]).write(to: mapsDir.appendingPathComponent("overworld.png"))
+        let store = try WorldStore.open(url)
+        var doc = try store.loadMap(named: "overworld")
+        doc.pins.append(MapPin(x: 0.3, y: 0.4, locationId: EntityID("ruins"), label: nil))
+        try store.saveMap(doc, name: "overworld")
+        let reread = try store.loadMap(named: "overworld")
+        XCTAssertEqual(reread.pins.count, 1)
+    }
 }

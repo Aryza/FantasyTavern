@@ -14,11 +14,16 @@ public final class WorldStore {
     public private(set) var world: World
     public private(set) var entities: [Entity]
     public private(set) var schema: Schema
+    public private(set) var mapNames: [String]
+    public private(set) var calendar: WorldCalendar
 
-    private init(world: World, entities: [Entity], schema: Schema) {
+    private init(world: World, entities: [Entity], schema: Schema,
+                 mapNames: [String], calendar: WorldCalendar) {
         self.world = world
         self.entities = entities
         self.schema = schema
+        self.mapNames = mapNames
+        self.calendar = calendar
     }
 
     public static func open(_ folder: URL) throws -> WorldStore {
@@ -51,8 +56,16 @@ public final class WorldStore {
         }
 
         let schema = SchemaLoader.load(overridesJSON: worldData)
+        let calendar = WorldCalendar.load(from: worldData)
+        let mapNames = MapStore.listNames(in: folder)
         let world = World(name: name, folder: folder, color: color)
-        return WorldStore(world: world, entities: loaded.sorted { $0.name < $1.name }, schema: schema)
+        return WorldStore(
+            world: world,
+            entities: loaded.sorted { $0.name < $1.name },
+            schema: schema,
+            mapNames: mapNames,
+            calendar: calendar
+        )
     }
 
     public func save(_ entity: Entity) throws {
@@ -93,5 +106,21 @@ public final class WorldStore {
         var n = 2
         while existing.contains("\(base)-\(n)") { n += 1 }
         return "\(base)-\(n)"
+    }
+
+    public func loadMap(named name: String) throws -> MapDoc {
+        try MapStore.load(name: name, in: world.folder)
+    }
+
+    public func saveMap(_ doc: MapDoc, name: String) throws {
+        try MapStore.save(doc, name: name, in: world.folder)
+        if !mapNames.contains(name) {
+            mapNames.append(name)
+            mapNames.sort()
+        }
+    }
+
+    public func reloadMapNames() {
+        mapNames = MapStore.listNames(in: world.folder)
     }
 }
