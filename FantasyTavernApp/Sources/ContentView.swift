@@ -36,6 +36,8 @@ struct ContentView: View {
             TimelineView()
         case .map(let name):
             MapView(name: name)
+        case .hexMap(let name):
+            HexMapView(name: name)
         case .none:
             ContentUnavailableView("No tab open", systemImage: "doc.text",
                                    description: Text("Open an entity from the sidebar or press ⌘K."))

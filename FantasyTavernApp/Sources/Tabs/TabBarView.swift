@@ -29,6 +29,8 @@ struct TabBarView: View {
             return "Timeline"
         case .map(let name):
             return "Map: \(name)"
+        case .hexMap(let name):
+            return "Hex Map: \(name)"
         }
     }
 }

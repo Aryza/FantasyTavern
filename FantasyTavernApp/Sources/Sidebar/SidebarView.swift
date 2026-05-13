@@ -37,6 +37,16 @@ struct SidebarView: View {
                             }
                         }
                     }
+                    let hexNames = session.store?.hexMapNames ?? []
+                    DisclosureGroup("Hex Maps (\(hexNames.count))") {
+                        if hexNames.isEmpty {
+                            Text("No hex maps in folder").foregroundStyle(.secondary).font(.caption)
+                        } else {
+                            ForEach(hexNames, id: \.self) { name in
+                                Button(name) { tabs.open(.hexMap(name)) }.buttonStyle(.plain)
+                            }
+                        }
+                    }
                 }
             } else {
                 ContentUnavailableView("No world open", systemImage: "globe")
