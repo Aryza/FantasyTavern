@@ -12,6 +12,8 @@ public final class WorldSession {
     public private(set) var backlinkIndex = BacklinkIndex(entities: [])
     public private(set) var searchIndex = SearchIndex()
 
+    private var watcher: FolderWatcher?
+
     public init() {}
 
     public func openWorld(at url: URL) throws {
@@ -19,6 +21,7 @@ public final class WorldSession {
         self.store = store
         rebuildLinks()
         rebuildSearch()
+        startWatching(url: url)
     }
 
     @discardableResult
@@ -56,6 +59,29 @@ public final class WorldSession {
 
     public func search(_ query: String) -> [SearchHit] {
         searchIndex.query(query)
+    }
+
+    // MARK: - watcher
+
+    private func startWatching(url: URL) {
+        watcher?.stop()
+        let w = FolderWatcher(url: url, debounce: 0.5) { [weak self] _ in
+            DispatchQueue.main.async { self?.reloadFromDisk(url: url) }
+        }
+        do {
+            try w.start()
+            watcher = w
+        } catch {
+            print("WorldSession: watcher failed: \(error)")
+            watcher = nil
+        }
+    }
+
+    private func reloadFromDisk(url: URL) {
+        guard let newStore = try? WorldStore.open(url) else { return }
+        store = newStore
+        rebuildLinks()
+        rebuildSearch()
     }
 
     private func rebuildLinks() {
