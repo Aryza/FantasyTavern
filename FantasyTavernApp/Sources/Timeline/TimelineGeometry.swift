@@ -38,4 +38,14 @@ enum TimelineGeometry {
         let span = Double(range.upperBound - range.lowerBound)
         return range.lowerBound + Int((frac * span).rounded())
     }
+
+    /// Pick the granularity whose tick step keeps a span readable
+    /// (target ~10-30 visible ticks across the span).
+    static func fittedGranularity(forSpan years: Int) -> TimelineGranularity {
+        let span = max(0, years)
+        if span == 0 { return .decade }
+        if span <= 20 { return .year }
+        if span <= 400 { return .decade }
+        return .century
+    }
 }

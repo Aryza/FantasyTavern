@@ -35,4 +35,17 @@ final class TimelineGeometryTests: XCTestCase {
         XCTAssertEqual(TimelineGeometry.year(atX: 100, range: -100...100, width: 200), 0)
         XCTAssertEqual(TimelineGeometry.year(atX: 0, range: -100...100, width: 200), -100)
     }
+
+    func test_fittedGranularity_small_picksYear() {
+        XCTAssertEqual(TimelineGeometry.fittedGranularity(forSpan: 5), .year)
+    }
+    func test_fittedGranularity_medium_picksDecade() {
+        XCTAssertEqual(TimelineGeometry.fittedGranularity(forSpan: 80), .decade)
+    }
+    func test_fittedGranularity_large_picksCentury() {
+        XCTAssertEqual(TimelineGeometry.fittedGranularity(forSpan: 5000), .century)
+    }
+    func test_fittedGranularity_zero_defaultsToDecade() {
+        XCTAssertEqual(TimelineGeometry.fittedGranularity(forSpan: 0), .decade)
+    }
 }
