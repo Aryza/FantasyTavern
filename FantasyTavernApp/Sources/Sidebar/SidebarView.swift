@@ -25,6 +25,19 @@ struct SidebarView: View {
                         }
                     }
                 }
+                Section("Views") {
+                    Button("Timeline") { tabs.open(.timeline) }.buttonStyle(.plain)
+                    let names = session.store?.mapNames ?? []
+                    DisclosureGroup("Maps (\(names.count))") {
+                        if names.isEmpty {
+                            Text("No maps in folder").foregroundStyle(.secondary).font(.caption)
+                        } else {
+                            ForEach(names, id: \.self) { name in
+                                Button(name) { tabs.open(.map(name)) }.buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
             } else {
                 ContentUnavailableView("No world open", systemImage: "globe")
             }
