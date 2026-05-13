@@ -5,6 +5,7 @@ import WorldStore
 import WikiLinks
 import SchemaRegistry
 import SearchIndex
+import SnapshotService
 
 @Observable
 public final class WorldSession {
@@ -13,6 +14,7 @@ public final class WorldSession {
     public private(set) var searchIndex = SearchIndex()
 
     private var watcher: FolderWatcher?
+    private var scheduler: SnapshotScheduler?
 
     public init() {}
 
@@ -22,6 +24,14 @@ public final class WorldSession {
         rebuildLinks()
         rebuildSearch()
         startWatching(url: url)
+        scheduler?.stop()
+        let s = SnapshotScheduler { [weak self] in
+            guard let self, let folder = self.store?.world.folder else { return }
+            _ = try? SnapshotService.snapshot(world: folder)
+            try? SnapshotService.prune(world: folder)
+        }
+        s.start()
+        scheduler = s
     }
 
     @discardableResult
@@ -47,6 +57,26 @@ public final class WorldSession {
         } else {
             searchIndex.upsert(entity)
         }
+        scheduler?.markDirty()
+    }
+
+    // MARK: - snapshots
+
+    public func snapshotNow() {
+        guard let folder = store?.world.folder else { return }
+        _ = try? SnapshotService.snapshot(world: folder)
+        try? SnapshotService.prune(world: folder)
+    }
+
+    public func listSnapshots() -> [SnapshotEntry] {
+        guard let folder = store?.world.folder else { return [] }
+        return SnapshotService.list(in: folder)
+    }
+
+    public func restore(snapshot: URL) throws {
+        guard let folder = store?.world.folder else { throw SessionError.noWorldOpen }
+        try SnapshotService.restore(snapshot: snapshot, world: folder)
+        // FSEvents watcher will reload entities.
     }
 
     public func backlinks(to target: EntityID) -> [EntityID] {
