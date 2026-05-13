@@ -7,11 +7,16 @@ public struct MarkdownTextView: NSViewRepresentable {
     @Binding public var text: String
     public let resolver: WikiLinkResolver
     public let onOpenLink: (EntityID) -> Void
+    public let onSelectionChange: ((NSRange) -> Void)?
 
-    public init(text: Binding<String>, resolver: WikiLinkResolver, onOpenLink: @escaping (EntityID) -> Void) {
+    public init(text: Binding<String>,
+                resolver: WikiLinkResolver,
+                onOpenLink: @escaping (EntityID) -> Void,
+                onSelectionChange: ((NSRange) -> Void)? = nil) {
         self._text = text
         self.resolver = resolver
         self.onOpenLink = onOpenLink
+        self.onSelectionChange = onSelectionChange
     }
 
     public func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -48,6 +53,12 @@ public struct MarkdownTextView: NSViewRepresentable {
         public func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? NSTextView else { return }
             parent.text = tv.string
+            parent.onSelectionChange?(tv.selectedRange())
+        }
+
+        public func textViewDidChangeSelection(_ notification: Notification) {
+            guard let tv = notification.object as? NSTextView else { return }
+            parent.onSelectionChange?(tv.selectedRange())
         }
 
         @objc func handleClick(_ gesture: NSClickGestureRecognizer) {
