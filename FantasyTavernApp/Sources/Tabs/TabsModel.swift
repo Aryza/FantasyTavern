@@ -4,31 +4,31 @@ import EntityModel
 
 @Observable
 public final class TabsModel {
-    public private(set) var openTabs: [EntityID] = []
-    public var selected: EntityID?
-    public private(set) var recents: [EntityID] = []
+    public private(set) var openTabs: [TabContent] = []
+    public var selected: TabContent?
+    public private(set) var recents: [TabContent] = []
     private let recentsCap = 10
 
     public init() {}
 
-    public func open(_ id: EntityID) {
-        if !openTabs.contains(id) { openTabs.append(id) }
-        selected = id
-        pushRecent(id)
+    public func open(_ content: TabContent) {
+        if !openTabs.contains(content) { openTabs.append(content) }
+        selected = content
+        pushRecent(content)
     }
 
-    public func close(_ id: EntityID) {
-        guard let idx = openTabs.firstIndex(of: id) else { return }
+    public func close(_ content: TabContent) {
+        guard let idx = openTabs.firstIndex(of: content) else { return }
         openTabs.remove(at: idx)
-        if selected == id {
+        if selected == content {
             if openTabs.isEmpty { selected = nil }
             else { selected = openTabs[min(idx, openTabs.count - 1)] }
         }
     }
 
-    private func pushRecent(_ id: EntityID) {
-        recents.removeAll { $0 == id }
-        recents.insert(id, at: 0)
+    private func pushRecent(_ content: TabContent) {
+        recents.removeAll { $0 == content }
+        recents.insert(content, at: 0)
         if recents.count > recentsCap { recents.removeLast(recents.count - recentsCap) }
     }
 }
