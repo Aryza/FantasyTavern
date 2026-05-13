@@ -8,6 +8,7 @@ struct AppCommands: Commands {
     @Binding var tabs: TabsModel
     @Bindable var recents = RecentWorlds.shared
     @Bindable var presenter: SnapshotsPresenter
+    @Bindable var hexPresenter: HexMapPresenter
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -30,6 +31,9 @@ struct AppCommands: Commands {
                     Button(label(for: type)) { newEntity(type: type) }
                         .disabled(session.store == nil)
                 }
+                Divider()
+                Button("Hex Map…") { hexPresenter.isShowingNew = true }
+                    .disabled(session.store == nil)
             }
             Button("New Character") { newEntity(type: .character) }
                 .keyboardShortcut("n", modifiers: [.command])

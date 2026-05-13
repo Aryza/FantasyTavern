@@ -6,6 +6,7 @@ struct FantasyTavernAppApp: App {
     @State private var tabs = TabsModel()
     @State private var palette: PaletteController
     @State private var snapshots = SnapshotsPresenter()
+    @State private var hexPresenter = HexMapPresenter()
 
     init() {
         let s = WorldSession()
@@ -22,6 +23,7 @@ struct FantasyTavernAppApp: App {
                 .environment(tabs)
                 .environment(palette)
                 .environment(snapshots)
+                .environment(hexPresenter)
                 .sheet(isPresented: Binding(
                     get: { snapshots.isShowing },
                     set: { snapshots.isShowing = $0 }
@@ -29,9 +31,17 @@ struct FantasyTavernAppApp: App {
                     SnapshotsView()
                         .environment(session)
                 }
+                .sheet(isPresented: Binding(
+                    get: { hexPresenter.isShowingNew },
+                    set: { hexPresenter.isShowingNew = $0 }
+                )) {
+                    NewHexMapSheet()
+                        .environment(session)
+                        .environment(tabs)
+                }
         }
         .commands {
-            AppCommands(session: $session, tabs: $tabs, presenter: snapshots)
+            AppCommands(session: $session, tabs: $tabs, presenter: snapshots, hexPresenter: hexPresenter)
             CommandGroup(after: .toolbar) {
                 Button("Show Command Palette") { palette.show() }
                     .keyboardShortcut("k", modifiers: [.command])
