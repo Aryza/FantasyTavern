@@ -16,7 +16,24 @@ struct MapView: View {
     @State private var scale: Double = 1.0
     @State private var dragOffset: CGSize = .zero
     @State private var committedOffset: CGSize = .zero
-    @State private var pinDragBaseline: [Int: CGPoint] = [:]
+    @State private var pinDragBaseline: [String: CGPoint] = [:]
+    @State private var activeLayerID: String = "default"
+
+    private struct PinDescriptor: Identifiable {
+        let id: String
+        let layerID: String
+        let pinIndex: Int
+        let pin: MapPin
+    }
+
+    private func visiblePinDescriptors(doc: MapDoc) -> [PinDescriptor] {
+        doc.layers.flatMap { layer -> [PinDescriptor] in
+            guard layer.visible else { return [] }
+            return layer.pins.enumerated().map { pinIdx, pin in
+                PinDescriptor(id: "\(layer.id)#\(pinIdx)", layerID: layer.id, pinIndex: pinIdx, pin: pin)
+            }
+        }
+    }
 
     var body: some View {
         Group {
@@ -72,8 +89,8 @@ struct MapView: View {
                 .simultaneousGesture(SpatialTapGesture(coordinateSpace: .local).modifiers(.command).onEnded { event in
                     pendingPinNormalized = normalize(event.location, in: fit)
                 })
-            ForEach(Array(doc.layers[0].pins.enumerated()), id: \.offset) { idx, pin in
-                pinView(idx: idx, pin: pin, fit: fit)
+            ForEach(visiblePinDescriptors(doc: doc), id: \.id) { desc in
+                pinView(layerID: desc.layerID, idx: desc.pinIndex, pin: desc.pin, fit: fit)
             }
         }
         .scaleEffect(scale, anchor: .center)
@@ -81,7 +98,7 @@ struct MapView: View {
         .animation(.snappy, value: scale)
     }
 
-    private func pinView(idx: Int, pin: MapPin, fit: FitRect) -> some View {
+    private func pinView(layerID: String, idx: Int, pin: MapPin, fit: FitRect) -> some View {
         let px = fit.origin.x + CGFloat(pin.clampedX) * fit.size.width
         let py = fit.origin.y + CGFloat(pin.clampedY) * fit.size.height
         let label = Self.displayLabel(for: pin, entities: session.store?.entities ?? [])
@@ -104,9 +121,9 @@ struct MapView: View {
         .position(x: px, y: py + 8)
         .help(label)
         .onTapGesture { tabs.open(.entity(pin.locationId)) }
-        .gesture(pinDragGesture(idx: idx, fit: fit))
+        .gesture(pinDragGesture(layerID: layerID, idx: idx, fit: fit))
         .contextMenu {
-            Button(role: .destructive) { deletePin(idx: idx) } label: { Text("Delete pin") }
+            Button(role: .destructive) { deletePin(layerID: layerID, idx: idx) } label: { Text("Delete pin") }
         }
     }
 
@@ -132,22 +149,26 @@ struct MapView: View {
             .onEnded { _ in /* leave scale as-is */ }
     }
 
-    private func pinDragGesture(idx: Int, fit: FitRect) -> some Gesture {
-        DragGesture(minimumDistance: 2)
+    private func pinDragGesture(layerID: String, idx: Int, fit: FitRect) -> some Gesture {
+        let key = "\(layerID)#\(idx)"
+        return DragGesture(minimumDistance: 2)
             .onChanged { value in
-                guard var d = doc, idx < d.layers[0].pins.count else { return }
-                if pinDragBaseline[idx] == nil {
-                    pinDragBaseline[idx] = CGPoint(x: d.layers[0].pins[idx].x, y: d.layers[0].pins[idx].y)
+                guard var d = doc,
+                      let lIdx = d.layers.firstIndex(where: { $0.id == layerID }),
+                      idx < d.layers[lIdx].pins.count
+                else { return }
+                if pinDragBaseline[key] == nil {
+                    pinDragBaseline[key] = CGPoint(x: d.layers[lIdx].pins[idx].x, y: d.layers[lIdx].pins[idx].y)
                 }
-                guard let base = pinDragBaseline[idx] else { return }
+                guard let base = pinDragBaseline[key] else { return }
                 let dx = Double(value.translation.width) / fit.size.width / scale
                 let dy = Double(value.translation.height) / fit.size.height / scale
-                d.layers[0].pins[idx].x = MapGeometry.clampNormalized(Double(base.x) + dx)
-                d.layers[0].pins[idx].y = MapGeometry.clampNormalized(Double(base.y) + dy)
+                d.layers[lIdx].pins[idx].x = MapGeometry.clampNormalized(Double(base.x) + dx)
+                d.layers[lIdx].pins[idx].y = MapGeometry.clampNormalized(Double(base.y) + dy)
                 doc = d
             }
             .onEnded { _ in
-                pinDragBaseline[idx] = nil
+                pinDragBaseline[key] = nil
                 if let d = doc, let store = session.store {
                     try? store.saveMap(d, name: name)
                 }
@@ -161,6 +182,9 @@ struct MapView: View {
         do {
             let d = try store.loadMap(named: name)
             doc = d
+            if !d.layers.contains(where: { $0.id == activeLayerID }) {
+                activeLayerID = d.layers.first?.id ?? "default"
+            }
             let imageURL = store.world.folder.appendingPathComponent("maps").appendingPathComponent(d.image)
             image = NSImage(contentsOf: imageURL)
             if image == nil { loadError = "Image \(d.image) could not be loaded" }
@@ -172,17 +196,28 @@ struct MapView: View {
     private func addPin(at normalized: CGPoint, locationID: EntityID) {
         guard var d = doc, let store = session.store else { return }
         let label = store.entities.first(where: { $0.id == locationID })?.name
-        d.layers[0].pins.append(MapPin(x: Double(normalized.x), y: Double(normalized.y),
-                                       locationId: locationID, label: label))
+        let pin = MapPin(x: Double(normalized.x), y: Double(normalized.y),
+                         locationId: locationID, label: label)
+        let targetLayer = d.layer(id: activeLayerID) != nil ? activeLayerID : (d.layers.first?.id ?? "default")
+        d.addPin(pin, toLayer: targetLayer)
         try? store.saveMap(d, name: name)
         doc = d
     }
 
-    private func deletePin(idx: Int) {
-        guard var d = doc, idx < d.layers[0].pins.count, let store = session.store else { return }
-        d.layers[0].pins.remove(at: idx)
+    private func deletePin(layerID: String, idx: Int) {
+        guard var d = doc,
+              let lIdx = d.layers.firstIndex(where: { $0.id == layerID }),
+              idx < d.layers[lIdx].pins.count,
+              let store = session.store
+        else { return }
+        d.layers[lIdx].pins.remove(at: idx)
         try? store.saveMap(d, name: name)
         doc = d
+    }
+
+    private func persistDoc() {
+        guard let d = doc, let store = session.store else { return }
+        try? store.saveMap(d, name: name)
     }
 
     private func resetView() {
