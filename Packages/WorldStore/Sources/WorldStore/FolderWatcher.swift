@@ -1,12 +1,12 @@
 import Foundation
+import CoreServices
 
 public final class FolderWatcher {
     public let url: URL
     public let debounce: TimeInterval
     private let onChange: (URL) -> Void
 
-    private var source: DispatchSourceFileSystemObject?
-    private var fd: Int32 = -1
+    private var stream: FSEventStreamRef?
     private var debounceWorkItem: DispatchWorkItem?
     private let queue = DispatchQueue(label: "FolderWatcher.\(UUID().uuidString)")
 
@@ -18,24 +18,43 @@ public final class FolderWatcher {
 
     public func start() throws {
         stop()
-        fd = open(url.path, O_EVTONLY)
-        guard fd >= 0 else { throw NSError(domain: "FolderWatcher", code: Int(errno)) }
-        let src = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: [.write, .extend, .rename, .delete],
-            queue: queue
+        let paths = [url.path] as CFArray
+        var context = FSEventStreamContext(
+            version: 0,
+            info: Unmanaged.passUnretained(self).toOpaque(),
+            retain: nil,
+            release: nil,
+            copyDescription: nil
         )
-        src.setEventHandler { [weak self] in self?.schedule() }
-        src.setCancelHandler { [weak self] in
-            if let f = self?.fd, f >= 0 { close(f); self?.fd = -1 }
+        let flags: UInt32 = UInt32(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer)
+        guard let s = FSEventStreamCreate(
+            kCFAllocatorDefault,
+            { _, info, _, _, _, _ in
+                guard let info else { return }
+                let watcher = Unmanaged<FolderWatcher>.fromOpaque(info).takeUnretainedValue()
+                watcher.schedule()
+            },
+            &context,
+            paths,
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow),
+            0.05,
+            flags
+        ) else {
+            throw NSError(domain: "FolderWatcher", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "FSEventStreamCreate failed"])
         }
-        src.resume()
-        source = src
+        FSEventStreamSetDispatchQueue(s, queue)
+        FSEventStreamStart(s)
+        stream = s
     }
 
     public func stop() {
-        source?.cancel()
-        source = nil
+        if let s = stream {
+            FSEventStreamStop(s)
+            FSEventStreamInvalidate(s)
+            FSEventStreamRelease(s)
+            stream = nil
+        }
     }
 
     private func schedule() {
