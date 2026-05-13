@@ -15,14 +15,16 @@ public final class WorldStore {
     public private(set) var entities: [Entity]
     public private(set) var schema: Schema
     public private(set) var mapNames: [String]
+    public private(set) var hexMapNames: [String]
     public private(set) var calendar: WorldCalendar
 
     private init(world: World, entities: [Entity], schema: Schema,
-                 mapNames: [String], calendar: WorldCalendar) {
+                 mapNames: [String], hexMapNames: [String], calendar: WorldCalendar) {
         self.world = world
         self.entities = entities
         self.schema = schema
         self.mapNames = mapNames
+        self.hexMapNames = hexMapNames
         self.calendar = calendar
     }
 
@@ -58,12 +60,14 @@ public final class WorldStore {
         let schema = SchemaLoader.load(overridesJSON: worldData)
         let calendar = WorldCalendar.load(from: worldData)
         let mapNames = MapStore.listNames(in: folder)
+        let hexMapNames = HexMapStore.listNames(in: folder)
         let world = World(name: name, folder: folder, color: color)
         return WorldStore(
             world: world,
             entities: loaded.sorted { $0.name < $1.name },
             schema: schema,
             mapNames: mapNames,
+            hexMapNames: hexMapNames,
             calendar: calendar
         )
     }
@@ -122,5 +126,21 @@ public final class WorldStore {
 
     public func reloadMapNames() {
         mapNames = MapStore.listNames(in: world.folder)
+    }
+
+    public func loadHexMap(named name: String) throws -> HexMapDoc {
+        try HexMapStore.load(name: name, in: world.folder)
+    }
+
+    public func saveHexMap(_ doc: HexMapDoc, name: String) throws {
+        try HexMapStore.save(doc, name: name, in: world.folder)
+        if !hexMapNames.contains(name) {
+            hexMapNames.append(name)
+            hexMapNames.sort()
+        }
+    }
+
+    public func reloadHexMapNames() {
+        hexMapNames = HexMapStore.listNames(in: world.folder)
     }
 }

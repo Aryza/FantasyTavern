@@ -113,4 +113,23 @@ final class WorldStoreTests: XCTestCase {
         let reread = try store.loadMap(named: "overworld")
         XCTAssertEqual(reread.allPins.count, 1)
     }
+
+    func test_open_listsHexMaps() throws {
+        let url = try copyFixtureWorld()
+        let dir = url.appendingPathComponent("hexmaps")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let doc = HexMapDoc.make(cols: 2, rows: 2)
+        try HexMapStore.save(doc, name: "overworld", in: url)
+        let store = try WorldStore.open(url)
+        XCTAssertEqual(store.hexMapNames, ["overworld"])
+    }
+
+    func test_saveHexMap_updatesList() throws {
+        let url = try copyFixtureWorld()
+        let store = try WorldStore.open(url)
+        XCTAssertEqual(store.hexMapNames, [])
+        let doc = HexMapDoc.make(cols: 2, rows: 2)
+        try store.saveHexMap(doc, name: "underdark")
+        XCTAssertEqual(store.hexMapNames, ["underdark"])
+    }
 }
