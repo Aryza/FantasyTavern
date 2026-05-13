@@ -108,9 +108,9 @@ final class WorldStoreTests: XCTestCase {
         try Data([0]).write(to: mapsDir.appendingPathComponent("overworld.png"))
         let store = try WorldStore.open(url)
         var doc = try store.loadMap(named: "overworld")
-        doc.pins.append(MapPin(x: 0.3, y: 0.4, locationId: EntityID("ruins"), label: nil))
+        doc.layers[0].pins.append(MapPin(x: 0.3, y: 0.4, locationId: EntityID("ruins"), label: nil))
         try store.saveMap(doc, name: "overworld")
         let reread = try store.loadMap(named: "overworld")
-        XCTAssertEqual(reread.pins.count, 1)
+        XCTAssertEqual(reread.allPins.count, 1)
     }
 }

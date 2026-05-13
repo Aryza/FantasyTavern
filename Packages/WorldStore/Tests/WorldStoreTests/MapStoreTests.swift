@@ -25,7 +25,7 @@ final class MapStoreTests: XCTestCase {
         try Data([0]).write(to: mapsDir.appendingPathComponent("overworld.png"))
         let doc = try MapStore.load(name: "overworld", in: tmp)
         XCTAssertEqual(doc.image, "overworld.png")
-        XCTAssertEqual(doc.pins, [])
+        XCTAssertEqual(doc.allPins, [])
     }
 
     func test_load_readsPinsFromJSON() throws {
@@ -37,15 +37,15 @@ final class MapStoreTests: XCTestCase {
         try json.write(to: mapsDir.appendingPathComponent("overworld.json"),
                        atomically: true, encoding: .utf8)
         let doc = try MapStore.load(name: "overworld", in: tmp)
-        XCTAssertEqual(doc.pins.count, 1)
-        XCTAssertEqual(doc.pins.first?.locationId.rawValue, "silvermoon")
+        XCTAssertEqual(doc.allPins.count, 1)
+        XCTAssertEqual(doc.allPins.first?.locationId.rawValue, "silvermoon")
     }
 
     func test_save_writesJSONAtomically() throws {
         let mapsDir = tmp.appendingPathComponent("maps")
         try Data([0]).write(to: mapsDir.appendingPathComponent("overworld.png"))
         var doc = MapDoc(image: "overworld.png")
-        doc.pins.append(MapPin(x: 0.2, y: 0.3, locationId: EntityID("ruins"), label: nil))
+        doc.layers[0].pins.append(MapPin(x: 0.2, y: 0.3, locationId: EntityID("ruins"), label: nil))
         try MapStore.save(doc, name: "overworld", in: tmp)
         let reread = try MapStore.load(name: "overworld", in: tmp)
         XCTAssertEqual(reread, doc)
