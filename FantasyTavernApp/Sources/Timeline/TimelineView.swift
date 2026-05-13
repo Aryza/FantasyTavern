@@ -7,6 +7,7 @@ struct TimelineView: View {
     @Environment(TabsModel.self) private var tabs
 
     @State private var granularity: TimelineGranularity = .decade
+    @State private var wheelAccumulator: CGFloat = 0
     @State private var panOffset: Double = 0
     @State private var hoverYear: Int? = nil
     @State private var popoverEventID: EntityID? = nil
@@ -27,6 +28,7 @@ struct TimelineView: View {
                 }
                 .frame(width: width, height: geo.size.height)
                 .contentShape(Rectangle())
+                .background(TimelineWheelCatcher { delta in handleWheel(delta) })
                 .onTapGesture { location in
                     let year = TimelineGeometry.year(atX: location.x, range: range, width: width)
                     createAtYear = year
@@ -50,6 +52,7 @@ struct TimelineView: View {
                     Text("Century").tag(TimelineGranularity.century)
                 }
                 .pickerStyle(.segmented)
+                Button("Fit") { fitToEvents() }
             }
         }
     }
@@ -162,5 +165,39 @@ struct TimelineView: View {
         updated.fields["date"] = .string(String(year))
         try? session.save(updated)
         tabs.open(.entity(updated.id))
+    }
+
+    // MARK: - zoom
+
+    private func handleWheel(_ delta: CGFloat) {
+        wheelAccumulator += delta
+        let threshold: CGFloat = 8 // small swipes shouldn't change zoom
+        if wheelAccumulator > threshold {
+            zoomIn(); wheelAccumulator = 0
+        } else if wheelAccumulator < -threshold {
+            zoomOut(); wheelAccumulator = 0
+        }
+    }
+
+    private func zoomIn() {
+        switch granularity {
+        case .century: granularity = .decade
+        case .decade:  granularity = .year
+        case .year:    break
+        }
+    }
+
+    private func zoomOut() {
+        switch granularity {
+        case .year:    granularity = .decade
+        case .decade:  granularity = .century
+        case .century: break
+        }
+    }
+
+    private func fitToEvents() {
+        let years = events.map(\.year)
+        let span = (years.max() ?? 0) - (years.min() ?? 0)
+        granularity = TimelineGeometry.fittedGranularity(forSpan: span)
     }
 }
