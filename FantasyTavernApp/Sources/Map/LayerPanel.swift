@@ -39,6 +39,15 @@ struct LayerPanel: View {
                 }
             )).labelsHidden()
 
+            Button {
+                activeLayerID = layer.id
+            } label: {
+                Image(systemName: layer.id == activeLayerID ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(layer.id == activeLayerID ? Color.accentColor : Color.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Make active")
+
             TextField("Name", text: Binding(
                 get: { layer.name },
                 set: { newName in
@@ -47,8 +56,9 @@ struct LayerPanel: View {
                 }
             ))
             .textFieldStyle(.plain)
+            .padding(.horizontal, 4).padding(.vertical, 2)
             .background(layer.id == activeLayerID ? Color.accentColor.opacity(0.18) : .clear)
-            .onTapGesture { activeLayerID = layer.id }
+            .clipShape(RoundedRectangle(cornerRadius: 3))
 
             Spacer()
             Button {
