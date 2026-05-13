@@ -38,28 +38,39 @@ struct MapView: View {
     var body: some View {
         Group {
             if let doc, let image {
-                GeometryReader { geo in
-                    let fit = aspectFit(imageSize: image.size, container: geo.size)
-                    ZStack(alignment: .topLeading) {
-                        imageLayer(doc: doc, image: image, fit: fit)
+                HStack(spacing: 0) {
+                    GeometryReader { geo in
+                        let fit = aspectFit(imageSize: image.size, container: geo.size)
+                        ZStack(alignment: .topLeading) {
+                            imageLayer(doc: doc, image: image, fit: fit)
+                        }
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                        .contentShape(Rectangle())
+                        .gesture(panGesture(fit: fit))
+                        .gesture(magnifyGesture())
+                        .background(WheelZoomCatcher(scale: $scale))
                     }
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .clipped()
-                    .contentShape(Rectangle())
-                    .gesture(panGesture(fit: fit))
-                    .gesture(magnifyGesture())
-                    .background(WheelZoomCatcher(scale: $scale))
-                }
-                .popover(isPresented: Binding(
-                    get: { pendingPinNormalized != nil },
-                    set: { if !$0 { pendingPinNormalized = nil } }
-                )) {
-                    AddPinPopover { locationID in
-                        if let p = pendingPinNormalized {
-                            addPin(at: p, locationID: locationID)
-                            pendingPinNormalized = nil
+                    .popover(isPresented: Binding(
+                        get: { pendingPinNormalized != nil },
+                        set: { if !$0 { pendingPinNormalized = nil } }
+                    )) {
+                        AddPinPopover { locationID in
+                            if let p = pendingPinNormalized {
+                                addPin(at: p, locationID: locationID)
+                                pendingPinNormalized = nil
+                            }
                         }
                     }
+                    LayerPanel(
+                        doc: Binding(
+                            get: { self.doc ?? doc },
+                            set: { newDoc in self.doc = newDoc }
+                        ),
+                        activeLayerID: $activeLayerID,
+                        onChange: { persistDoc() }
+                    )
+                    .frame(width: 200)
                 }
             } else if let loadError {
                 ContentUnavailableView(loadError, systemImage: "exclamationmark.triangle")
