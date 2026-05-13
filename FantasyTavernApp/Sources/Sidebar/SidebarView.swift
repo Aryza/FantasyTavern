@@ -18,7 +18,7 @@ struct SidebarView: View {
                                     .font(.caption)
                             } else {
                                 ForEach(entries, id: \.id) { entity in
-                                    Button(entity.name) { tabs.open(entity.id) }
+                                    Button(entity.name) { tabs.open(.entity(entity.id)) }
                                         .buttonStyle(.plain)
                                 }
                             }

@@ -25,7 +25,7 @@ struct EditorView: View {
                 MarkdownTextView(
                     text: $bodyText,
                     resolver: WikiLinkResolver(entities: session.store?.entities ?? []),
-                    onOpenLink: { tabs.open($0) }
+                    onOpenLink: { tabs.open(.entity($0)) }
                 )
                 .onChange(of: bodyText) { _, _ in scheduleSave() }
             }

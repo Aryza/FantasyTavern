@@ -68,7 +68,7 @@ struct AppCommands: Commands {
 
     private func newEntity(type: EntityType) {
         if let entity = try? session.createEntity(type: type, name: "Untitled \(label(for: type))") {
-            tabs.open(entity.id)
+            tabs.open(.entity(entity.id))
         }
     }
 }

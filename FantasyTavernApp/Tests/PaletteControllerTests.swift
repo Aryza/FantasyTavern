@@ -72,7 +72,7 @@ final class PaletteControllerTests: XCTestCase {
         c.show()
         c.query = "lyra"
         c.activate(openInPlace: false)
-        XCTAssertEqual(tabs.selected, e.id)
+        XCTAssertEqual(tabs.selected, .entity(e.id))
         XCTAssertFalse(c.isVisible)
     }
 }

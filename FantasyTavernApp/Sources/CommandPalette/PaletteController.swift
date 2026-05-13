@@ -34,11 +34,14 @@ final class PaletteController {
         guard !isActionMode else { return [] }
         // empty query: show recents first, then everything sorted by name (limit 50)
         if query.trimmingCharacters(in: .whitespaces).isEmpty {
-            let recentHits = tabs.recents.compactMap { id -> SearchHit? in
-                guard let e = session.store?.entities.first(where: { $0.id == id }) else { return nil }
+            let recentHits: [SearchHit] = tabs.recents.compactMap { content in
+                guard case .entity(let id) = content,
+                      let e = session.store?.entities.first(where: { $0.id == id })
+                else { return nil }
                 return SearchHit(id: e.id, type: e.type, name: e.name, score: 0)
             }
-            let remaining = session.search("").filter { hit in !tabs.recents.contains(hit.id) }
+            let recentEntityIDs = Set(tabs.recents.compactMap { $0.entityID })
+            let remaining = session.search("").filter { !recentEntityIDs.contains($0.id) }
             return Array((recentHits + remaining).prefix(50))
         }
         return Array(session.search(query).prefix(50))
@@ -54,7 +57,7 @@ final class PaletteController {
         PaletteActions.standard(
             newEntity: { [weak self] type in
                 if let entity = try? self?.session.createEntity(type: type, name: "Untitled \(type.rawValue)") {
-                    self?.tabs.open(entity.id)
+                    self?.tabs.open(.entity(entity.id))
                 }
             },
             openWorld: { [weak self] in
@@ -68,7 +71,7 @@ final class PaletteController {
                 }
             },
             closeCurrentTab: { [weak self] in
-                if let id = self?.tabs.selected { self?.tabs.close(id) }
+                if let s = self?.tabs.selected { self?.tabs.close(s) }
             },
             clearRecents: { RecentWorlds.shared.clear() }
         )
@@ -96,10 +99,11 @@ final class PaletteController {
         let results = findResults
         guard selectionIndex < results.count else { return }
         let id = results[selectionIndex].id
-        if openInPlace, let current = tabs.selected, current != id {
+        let content = TabContent.entity(id)
+        if openInPlace, let current = tabs.selected, current != content {
             tabs.close(current)
         }
-        tabs.open(id)
+        tabs.open(content)
         dismiss()
     }
 }

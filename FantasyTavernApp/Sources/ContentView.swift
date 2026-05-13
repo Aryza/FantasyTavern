@@ -15,21 +15,30 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     TabBarView()
                     Divider()
-                    if let id = tabs.selected, let entity = entity(for: id) {
-                        EditorView(entity: entity)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        ContentUnavailableView("No tab open", systemImage: "doc.text",
-                                               description: Text("Open an entity from the sidebar or press ⌘K."))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
+                    detail
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
             CommandPaletteView(controller: palette)
         }
     }
 
-    private func entity(for id: EntityID) -> Entity? {
-        session.store?.entities.first(where: { $0.id == id })
+    @ViewBuilder
+    private var detail: some View {
+        switch tabs.selected {
+        case .entity(let id):
+            if let entity = session.store?.entities.first(where: { $0.id == id }) {
+                EditorView(entity: entity)
+            } else {
+                ContentUnavailableView("Entity unavailable", systemImage: "exclamationmark.triangle")
+            }
+        case .timeline:
+            TimelineView()
+        case .map(let name):
+            MapView(name: name)
+        case .none:
+            ContentUnavailableView("No tab open", systemImage: "doc.text",
+                                   description: Text("Open an entity from the sidebar or press ⌘K."))
+        }
     }
 }

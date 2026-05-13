@@ -1,8 +1,7 @@
 import SwiftUI
-import EntityModel
 
 struct EditorTab: View {
-    let id: EntityID
+    let content: TabContent
     let label: String
     let isSelected: Bool
     let onSelect: () -> Void

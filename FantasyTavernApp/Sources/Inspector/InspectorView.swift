@@ -33,7 +33,7 @@ struct InspectorView: View {
                         Text("No incoming links yet.").foregroundStyle(.secondary).font(.caption)
                     } else {
                         ForEach(ids, id: \.self) { id in
-                            Button(name(for: id)) { tabs.open(id) }.buttonStyle(.link)
+                            Button(name(for: id)) { tabs.open(.entity(id)) }.buttonStyle(.link)
                         }
                     }
                 }
