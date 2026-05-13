@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import EntityModel
 import WorldStore
 
@@ -12,6 +13,7 @@ struct TimelineView: View {
     @State private var hoverYear: Int? = nil
     @State private var popoverEventID: EntityID? = nil
     @State private var createAtYear: Int? = nil
+    @State private var scrollMonitor: Any?
 
     private let viewportWidth: Double = 2000   // logical width before user pan
     private let rowHeight: Double = 80
@@ -54,6 +56,24 @@ struct TimelineView: View {
                 .pickerStyle(.segmented)
                 Button("Fit") { fitToEvents() }
             }
+        }
+        .onAppear { installScrollMonitor() }
+        .onDisappear { removeScrollMonitor() }
+    }
+
+    private func installScrollMonitor() {
+        guard scrollMonitor == nil else { return }
+        scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+            guard event.modifierFlags.contains(.command) else { return event }
+            handleWheel(event.scrollingDeltaY)
+            return nil
+        }
+    }
+
+    private func removeScrollMonitor() {
+        if let monitor = scrollMonitor {
+            NSEvent.removeMonitor(monitor)
+            scrollMonitor = nil
         }
     }
 
