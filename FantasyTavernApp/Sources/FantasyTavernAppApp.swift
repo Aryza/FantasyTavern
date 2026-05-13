@@ -37,5 +37,14 @@ struct FantasyTavernAppApp: App {
                     .keyboardShortcut("k", modifiers: [.command])
             }
         }
+
+        WindowGroup("Snapshot Preview", for: URL.self) { $url in
+            if let url, let session = try? SnapshotPreviewSession(snapshot: url) {
+                SnapshotPreviewWindow(session: session)
+                    .navigationTitle("Preview — \(url.lastPathComponent)")
+            } else {
+                ContentUnavailableView("Failed to load preview", systemImage: "exclamationmark.triangle")
+            }
+        }
     }
 }

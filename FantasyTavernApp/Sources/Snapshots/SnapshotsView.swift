@@ -4,6 +4,7 @@ import SnapshotService
 struct SnapshotsView: View {
     @Environment(WorldSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openWindow) private var openWindow
 
     @State private var entries: [SnapshotEntry] = []
     @State private var selected: URL?
@@ -32,6 +33,12 @@ struct SnapshotsView: View {
                     reload()
                 }
                 Spacer()
+                Button("Preview Selected") {
+                    if let url = selected {
+                        openWindow(value: url)
+                    }
+                }
+                .disabled(selected == nil)
                 Button("Restore Selected") {
                     if let url = selected, let entry = entries.first(where: { $0.url == url }) {
                         confirmRestore = entry
