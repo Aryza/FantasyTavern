@@ -72,7 +72,7 @@ struct MapView: View {
                 .simultaneousGesture(SpatialTapGesture(coordinateSpace: .local).modifiers(.command).onEnded { event in
                     pendingPinNormalized = normalize(event.location, in: fit)
                 })
-            ForEach(Array(doc.pins.enumerated()), id: \.offset) { idx, pin in
+            ForEach(Array(doc.layers[0].pins.enumerated()), id: \.offset) { idx, pin in
                 pinView(idx: idx, pin: pin, fit: fit)
             }
         }
@@ -135,15 +135,15 @@ struct MapView: View {
     private func pinDragGesture(idx: Int, fit: FitRect) -> some Gesture {
         DragGesture(minimumDistance: 2)
             .onChanged { value in
-                guard var d = doc, idx < d.pins.count else { return }
+                guard var d = doc, idx < d.layers[0].pins.count else { return }
                 if pinDragBaseline[idx] == nil {
-                    pinDragBaseline[idx] = CGPoint(x: d.pins[idx].x, y: d.pins[idx].y)
+                    pinDragBaseline[idx] = CGPoint(x: d.layers[0].pins[idx].x, y: d.layers[0].pins[idx].y)
                 }
                 guard let base = pinDragBaseline[idx] else { return }
                 let dx = Double(value.translation.width) / fit.size.width / scale
                 let dy = Double(value.translation.height) / fit.size.height / scale
-                d.pins[idx].x = MapGeometry.clampNormalized(Double(base.x) + dx)
-                d.pins[idx].y = MapGeometry.clampNormalized(Double(base.y) + dy)
+                d.layers[0].pins[idx].x = MapGeometry.clampNormalized(Double(base.x) + dx)
+                d.layers[0].pins[idx].y = MapGeometry.clampNormalized(Double(base.y) + dy)
                 doc = d
             }
             .onEnded { _ in
@@ -172,15 +172,15 @@ struct MapView: View {
     private func addPin(at normalized: CGPoint, locationID: EntityID) {
         guard var d = doc, let store = session.store else { return }
         let label = store.entities.first(where: { $0.id == locationID })?.name
-        d.pins.append(MapPin(x: Double(normalized.x), y: Double(normalized.y),
-                             locationId: locationID, label: label))
+        d.layers[0].pins.append(MapPin(x: Double(normalized.x), y: Double(normalized.y),
+                                       locationId: locationID, label: label))
         try? store.saveMap(d, name: name)
         doc = d
     }
 
     private func deletePin(idx: Int) {
-        guard var d = doc, idx < d.pins.count, let store = session.store else { return }
-        d.pins.remove(at: idx)
+        guard var d = doc, idx < d.layers[0].pins.count, let store = session.store else { return }
+        d.layers[0].pins.remove(at: idx)
         try? store.saveMap(d, name: name)
         doc = d
     }

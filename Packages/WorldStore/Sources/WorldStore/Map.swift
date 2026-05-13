@@ -72,3 +72,39 @@ extension MapDoc: Codable {
         try c.encode(layers, forKey: .layers)
     }
 }
+
+public extension MapDoc {
+    func layer(id: String) -> MapLayer? {
+        layers.first { $0.id == id }
+    }
+
+    @discardableResult
+    mutating func addLayer() -> String {
+        let id = UUID().uuidString
+        let n = layers.count + 1
+        layers.append(MapLayer(id: id, name: "Layer \(n)"))
+        return id
+    }
+
+    @discardableResult
+    mutating func removeLayer(id: String) -> Bool {
+        guard layers.count > 1, let idx = layers.firstIndex(where: { $0.id == id }) else { return false }
+        layers.remove(at: idx)
+        return true
+    }
+
+    mutating func renameLayer(id: String, to newName: String) {
+        guard let idx = layers.firstIndex(where: { $0.id == id }) else { return }
+        layers[idx].name = newName
+    }
+
+    mutating func setVisibility(id: String, visible: Bool) {
+        guard let idx = layers.firstIndex(where: { $0.id == id }) else { return }
+        layers[idx].visible = visible
+    }
+
+    mutating func addPin(_ pin: MapPin, toLayer id: String) {
+        guard let idx = layers.firstIndex(where: { $0.id == id }) else { return }
+        layers[idx].pins.append(pin)
+    }
+}
