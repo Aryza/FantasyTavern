@@ -84,17 +84,30 @@ struct MapView: View {
     private func pinView(idx: Int, pin: MapPin, fit: FitRect) -> some View {
         let px = fit.origin.x + CGFloat(pin.clampedX) * fit.size.width
         let py = fit.origin.y + CGFloat(pin.clampedY) * fit.size.height
-        return Circle()
-            .fill(Color.red)
-            .frame(width: 12, height: 12)
-            .overlay(Circle().stroke(Color.white, lineWidth: 1))
-            .position(x: px, y: py)
-            .help(pin.label ?? pin.locationId.rawValue)
-            .onTapGesture { tabs.open(.entity(pin.locationId)) }
-            .gesture(pinDragGesture(idx: idx, fit: fit))
-            .contextMenu {
-                Button(role: .destructive) { deletePin(idx: idx) } label: { Text("Delete pin") }
-            }
+        let label = Self.displayLabel(for: pin, entities: session.store?.entities ?? [])
+        return ZStack(alignment: .top) {
+            Circle()
+                .fill(Color.red)
+                .frame(width: 12, height: 12)
+                .overlay(Circle().stroke(Color.white, lineWidth: 1))
+            Text(label)
+                .font(.caption2)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+                .frame(maxWidth: 120)
+                .offset(y: 14)
+        }
+        .position(x: px, y: py + 8)
+        .help(label)
+        .onTapGesture { tabs.open(.entity(pin.locationId)) }
+        .gesture(pinDragGesture(idx: idx, fit: fit))
+        .contextMenu {
+            Button(role: .destructive) { deletePin(idx: idx) } label: { Text("Delete pin") }
+        }
     }
 
     // MARK: - gestures
@@ -200,6 +213,14 @@ struct MapView: View {
         let relX = (point.x - fit.origin.x) / fit.size.width
         let relY = (point.y - fit.origin.y) / fit.size.height
         return CGPoint(x: MapGeometry.clampNormalized(relX), y: MapGeometry.clampNormalized(relY))
+    }
+}
+
+extension MapView {
+    static func displayLabel(for pin: MapPin, entities: [Entity]) -> String {
+        if let label = pin.label, !label.isEmpty { return label }
+        if let entity = entities.first(where: { $0.id == pin.locationId }) { return entity.name }
+        return pin.locationId.rawValue
     }
 }
 
