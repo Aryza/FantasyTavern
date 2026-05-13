@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import EntityModel
 import WikiLinks
 
@@ -12,6 +13,8 @@ struct EditorView: View {
     @State private var tags: [String] = []
     @State private var fields: [String: FieldValue] = [:]
     @State private var saveTask: Task<Void, Never>?
+    @State private var caretLocation: Int = 0
+    @State private var autocomplete = WikiAutocompleteController()
 
     var body: some View {
         HStack(spacing: 0) {
@@ -22,12 +25,40 @@ struct EditorView: View {
                     .padding(.top, 8).padding(.horizontal, 12)
                     .onChange(of: nameDraft) { _, _ in scheduleSave() }
                 Divider()
-                MarkdownTextView(
-                    text: $bodyText,
-                    resolver: WikiLinkResolver(entities: session.store?.entities ?? []),
-                    onOpenLink: { tabs.open(.entity($0)) }
-                )
-                .onChange(of: bodyText) { _, _ in scheduleSave() }
+                ZStack(alignment: .topLeading) {
+                    MarkdownTextView(
+                        text: $bodyText,
+                        resolver: WikiLinkResolver(entities: session.store?.entities ?? []),
+                        onOpenLink: { tabs.open(.entity($0)) },
+                        onSelectionChange: { range in
+                            caretLocation = range.location
+                            refreshAutocomplete()
+                        }
+                    )
+                    .onChange(of: bodyText) { _, _ in
+                        scheduleSave()
+                        refreshAutocomplete()
+                    }
+                    .onKeyPress(.upArrow) {
+                        if autocomplete.isActive { autocomplete.move(by: -1); return .handled }
+                        return .ignored
+                    }
+                    .onKeyPress(.downArrow) {
+                        if autocomplete.isActive { autocomplete.move(by: 1); return .handled }
+                        return .ignored
+                    }
+                    .onKeyPress(.return) {
+                        if autocomplete.isActive { acceptAutocomplete(); return .handled }
+                        return .ignored
+                    }
+                    .onKeyPress(.escape) {
+                        if autocomplete.isActive { autocomplete.deactivate(); return .handled }
+                        return .ignored
+                    }
+
+                    WikiAutocompleteView(controller: autocomplete, onAccept: acceptAutocomplete)
+                        .padding(.top, 32).padding(.leading, 12)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
@@ -45,6 +76,7 @@ struct EditorView: View {
         bodyText = entity.body
         tags = entity.tags
         fields = entity.fields
+        autocomplete.deactivate()
     }
 
     private func scheduleSave() {
@@ -61,5 +93,18 @@ struct EditorView: View {
             copy.fields = snapshot.3
             try? session.save(copy)
         }
+    }
+
+    private func refreshAutocomplete() {
+        let all = session.store?.entities ?? []
+        autocomplete.update(text: bodyText, caret: caretLocation, entities: all)
+    }
+
+    private func acceptAutocomplete() {
+        guard let insertion = autocomplete.acceptCurrent() else { return }
+        let ns = bodyText as NSString
+        bodyText = ns.replacingCharacters(in: insertion.range, with: insertion.replacement)
+        caretLocation = insertion.range.location + (insertion.replacement as NSString).length
+        autocomplete.deactivate()
     }
 }
