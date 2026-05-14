@@ -52,6 +52,11 @@ struct AppCommands: Commands {
                     .disabled(currentEntity() == nil)
                 Button("Whole World…") { exportWholeWorld() }
                     .disabled(session.store == nil)
+                Divider()
+                Button("PDF — Current Entity…") { exportCurrentEntityPDF() }
+                    .disabled(currentEntity() == nil)
+                Button("PDF — Whole World…") { exportWholeWorldPDF() }
+                    .disabled(session.store == nil)
             }
         }
     }
@@ -126,5 +131,25 @@ struct AppCommands: Commands {
         panel.nameFieldStringValue = "\(folder.lastPathComponent).zip"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         try? ExportService.zipFolder(folder, to: url, exclude: [".fantasytavern/*"])
+    }
+
+    private func exportCurrentEntityPDF() {
+        guard let e = currentEntity() else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.nameFieldStringValue = "\(e.id.rawValue).pdf"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let doc = PDFContent.entityDocument(e)
+        try? PDFExporter.write(doc, to: url)
+    }
+
+    private func exportWholeWorldPDF() {
+        guard let store = session.store else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.nameFieldStringValue = "\(store.world.name).pdf"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let doc = PDFContent.worldDocument(world: store.world, entities: store.entities)
+        try? PDFExporter.write(doc, to: url)
     }
 }
