@@ -7,6 +7,12 @@ public struct World: Equatable, Sendable {
     public var name: String
     public var folder: URL
     public var color: String?
+
+    public init(name: String, folder: URL, color: String? = nil) {
+        self.name = name
+        self.folder = folder
+        self.color = color
+    }
 }
 
 @Observable
